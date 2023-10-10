@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\arquivotest;
 use App\Models\Heavys;
 use App\Models\Map;
 use App\Models\Sites;
@@ -32,21 +33,29 @@ class MapController extends Controller
         DB::beginTransaction();
 
         $mapa->name = $request->name;
-        $mapa->map_url_pic = $request->map_url_pic;  
+        $mapa->map_url_pic = $request->map_url_pic;        
+        if($request->hasFile('map_url_pic')) {
+            $foto = $request->file('map_url_pic');
+            $nomeArquivo = time() . '_' . $foto->getClientOriginalName();
+            $foto->storeAs('public/fotos', $nomeArquivo);
+            $mapa->map_url_pic = $nomeArquivo;
+        }
+    
         $mapa->save();
         if (!$mapa->save()) {
             return DB::rollBack();
         }
-
-        $sites = $request->input('sites');
-
         
-        foreach ($sites as $site) {
-            $siteOfMap = new Sites;
-            $siteOfMap->nome = $site["nome"];
-            $siteOfMap->map_id = $mapa->id;
-            $siteOfMap->save();
-        }
+        $sites = json_decode($request->input('sites'), true);
+
+        if ($sites){
+            foreach ($sites as $site) {
+                $siteOfMap = new Sites;
+                $siteOfMap->nome = $site["nome"];
+                $siteOfMap->map_id = $mapa->id;
+                $siteOfMap->save();
+            }
+        }        
 
         $ctTeam = new Teams;
         $ctTeam->name = 'Counter-Terrorists';
